@@ -37,6 +37,10 @@ toDate = "2014-01-08T07:04:06.666Z"
 accountHistory = client.AccountHistory(fromDate, toDate)
 '''
 
+''' Cancel Order Example
+client.CancelOrder(123456)
+'''
+
 ''' Create Checkout Example 
 checkoutLM = CheckoutLinkModel()
 checkoutLM.CoinType = CoinType.NIS
