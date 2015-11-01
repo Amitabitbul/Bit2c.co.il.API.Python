@@ -80,7 +80,7 @@ class Bit2cClient:
     def GetTrades(self, Pair, since = 0, date = 0):
         url = self.Url+ "Exchanges/" + str(Pair) + "/trades.json"
         response = self.DownloadString(url)
-        _json = json.loads(response)
+        _json = json.loads(response.decode("utf-8"))
         ExchangesTrades = []
         for jsonObj in _json:
             exTrade = ExchangesTrade(jsonObj['date'], jsonObj['price'], jsonObj['amount'], jsonObj['tid'])
@@ -90,13 +90,13 @@ class Bit2cClient:
     def GetTicker(self, Pair = PairType.BtcNis):
         url = self.Url + "Exchanges/" + str(Pair) + "/Ticker.json"
         response = self.DownloadString(url)
-        _json = json.loads(response)
+        _json = json.loads(response.decode("utf-8"))
         return Ticker(_json['h'], _json['l'], _json['ll'], _json['a'], _json['av'])
 
     def GetOrderBook(self, Pair = PairType.BtcNis):
         url = self.Url + "Exchanges/" + str(Pair) + "/orderbook.json"
         response = self.DownloadString(url)
-        _json = json.loads(response)
+        _json = json.loads(response.decode("utf-8"))
         orderBook = OrderBook()
 
         jsonAsks = _json['asks']
@@ -115,7 +115,7 @@ class Bit2cClient:
         sign = self.ComputeHash(qString)
         url = self.Url + "Order/AddOrder"
         response = self.Query(qString, url, sign)
-        _json = json.loads(response)
+        _json = json.loads(response.decode("utf-8"))
         orderResponse = OrderResponse()
 
         orderResponse.HasError = bool(_json['OrderResponse']['HasError'])
@@ -143,7 +143,7 @@ class Bit2cClient:
         sign = self.ComputeHash(qString)
         url = self.Url + "Order/MyOrders"
         response = self.Query(qString, url, sign)
-        _json = json.loads(response)
+        _json = json.loads(response.decode("utf-8"))
         orders = Orders()
         if 'bids' in _json:
             for bid in _json['bids']:
@@ -193,7 +193,7 @@ class Bit2cClient:
         sign = self.ComputeHash(qString)
         url = self.Url + "Order/AccountHistory"
         response = self.Query(qString, url, sign)
-        _json = json.loads(response)
+        _json = json.loads(response.decode("utf-8"))
         accountRaws = []
         for raw in _json:
             accountRaw = AccountRaw()
