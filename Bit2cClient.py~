@@ -3,15 +3,19 @@ import json
 import hmac
 import hashlib
 import pycurl
+import cStringIO
 from datetime import datetime
 
 from Balance import *
-from Enums.PairType import PairType
+from AccountAction import *
 from ExchangesTrade import *
 from Ticker import *
 from OrderBook  import *
 from AccountRaw import *
 from AddOrderResponse import *
+from OrderStatusType import *
+from PairType import *
+from CoinType import *
 from Orders import *
 from od import *
 from OrderData import *
@@ -27,16 +31,10 @@ class Bit2cClient:
         self.Url = Url
 
     def ComputeHash(self, message):
-        sign = hashlib.sha512(message.encode("utf-8"))
-        import base64
-        return base64.b64encode(hmac.new(bytearray(self.Secret.upper(), "ASCII") , bytearray(message,"ASCII") , hashlib.sha512).digest()).decode("ASCII").replace("\n", "")
+        return hmac.new(self.Secret.upper() , message , hashlib.sha512).digest().encode("base64").replace("\n","")
 
     def Query(self, qString, url, sign):
-        try:
-            from io import BytesIO
-        except ImportError:
-            from StringIO import StringIO as BytesIO
-        buf = BytesIO()
+        buf = cStringIO.StringIO()
 
         curl = pycurl.Curl()
         curl.setopt(pycurl.URL, url)
@@ -45,10 +43,11 @@ class Bit2cClient:
         curl.setopt(pycurl.WRITEFUNCTION, buf.write)
         curl.setopt(pycurl.POSTFIELDS, qString)
         curl.setopt(pycurl.HTTPHEADER, ['Key:'+self.Key,
-            'Sign:'+(sign), 'Content-Type:application/x-www-form-urlencoded'])
+                                    'Sign:'+(sign)])
         curl.perform()
         res = buf.getvalue()
         buf.close()
+
         return res
         
 
@@ -57,15 +56,11 @@ class Bit2cClient:
         sign = self.ComputeHash(qString)
         url = self.Url + "Account/Balance"
         response = self.Query(qString, url, sign)
-        _json = json.loads(response.decode("utf-8"))
+        _json = json.loads(response)
         return Balance(_json['BalanceNIS'], _json['BalanceLTC'], _json['BalanceBTC'])
 
     def DownloadString(self, url):
-        try:
-            from io import BytesIO
-        except ImportError:
-            from StringIO import StringIO as BytesIO
-        buf = BytesIO()
+        buf = cStringIO.StringIO()
         curl = pycurl.Curl()
         curl.setopt(pycurl.URL, url)
         curl.setopt(pycurl.SSL_VERIFYPEER, 0)
