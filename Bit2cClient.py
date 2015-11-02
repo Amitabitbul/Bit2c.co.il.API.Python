@@ -3,19 +3,15 @@ import json
 import hmac
 import hashlib
 import pycurl
-import cStringIO
 from datetime import datetime
 
 from Balance import *
-from AccountAction import *
+from Enums.PairType import PairType
 from ExchangesTrade import *
 from Ticker import *
 from OrderBook  import *
 from AccountRaw import *
 from AddOrderResponse import *
-from OrderStatusType import *
-from PairType import *
-from CoinType import *
 from Orders import *
 from od import *
 from OrderData import *
@@ -31,10 +27,16 @@ class Bit2cClient:
         self.Url = Url
 
     def ComputeHash(self, message):
-        return hmac.new(self.Secret.upper() , message , hashlib.sha512).digest().encode("base64").replace("\n","")
+        sign = hashlib.sha512(message.encode("utf-8"))
+        import base64
+        return base64.b64encode(hmac.new(bytearray(self.Secret.upper(), "ASCII") , bytearray(message,"ASCII") , hashlib.sha512).digest()).decode("ASCII").replace("\n", "")
 
     def Query(self, qString, url, sign):
-        buf = cStringIO.StringIO()
+        try:
+            from io import BytesIO
+        except ImportError:
+            from StringIO import StringIO as BytesIO
+        buf = BytesIO()
 
         curl = pycurl.Curl()
         curl.setopt(pycurl.URL, url)
@@ -43,11 +45,10 @@ class Bit2cClient:
         curl.setopt(pycurl.WRITEFUNCTION, buf.write)
         curl.setopt(pycurl.POSTFIELDS, qString)
         curl.setopt(pycurl.HTTPHEADER, ['Key:'+self.Key,
-                                    'Sign:'+(sign)])
+            'Sign:'+(sign), 'Content-Type:application/x-www-form-urlencoded'])
         curl.perform()
         res = buf.getvalue()
         buf.close()
-
         return res
         
 
@@ -56,11 +57,15 @@ class Bit2cClient:
         sign = self.ComputeHash(qString)
         url = self.Url + "Account/Balance"
         response = self.Query(qString, url, sign)
-        _json = json.loads(response)
+        _json = json.loads(response.decode("utf-8"))
         return Balance(_json['BalanceNIS'], _json['BalanceLTC'], _json['BalanceBTC'])
 
     def DownloadString(self, url):
-        buf = cStringIO.StringIO()
+        try:
+            from io import BytesIO
+        except ImportError:
+            from StringIO import StringIO as BytesIO
+        buf = BytesIO()
         curl = pycurl.Curl()
         curl.setopt(pycurl.URL, url)
         curl.setopt(pycurl.SSL_VERIFYPEER, 0)
@@ -75,7 +80,7 @@ class Bit2cClient:
     def GetTrades(self, Pair, since = 0, date = 0):
         url = self.Url+ "Exchanges/" + str(Pair) + "/trades.json"
         response = self.DownloadString(url)
-        _json = json.loads(response)
+        _json = json.loads(response.decode("utf-8"))
         ExchangesTrades = []
         for jsonObj in _json:
             exTrade = ExchangesTrade(jsonObj['date'], jsonObj['price'], jsonObj['amount'], jsonObj['tid'])
@@ -85,13 +90,13 @@ class Bit2cClient:
     def GetTicker(self, Pair = PairType.BtcNis):
         url = self.Url + "Exchanges/" + str(Pair) + "/Ticker.json"
         response = self.DownloadString(url)
-        _json = json.loads(response)
+        _json = json.loads(response.decode("utf-8"))
         return Ticker(_json['h'], _json['l'], _json['ll'], _json['a'], _json['av'])
 
     def GetOrderBook(self, Pair = PairType.BtcNis):
         url = self.Url + "Exchanges/" + str(Pair) + "/orderbook.json"
         response = self.DownloadString(url)
-        _json = json.loads(response)
+        _json = json.loads(response.decode("utf-8"))
         orderBook = OrderBook()
 
         jsonAsks = _json['asks']
@@ -110,7 +115,7 @@ class Bit2cClient:
         sign = self.ComputeHash(qString)
         url = self.Url + "Order/AddOrder"
         response = self.Query(qString, url, sign)
-        _json = json.loads(response)
+        _json = json.loads(response.decode("utf-8"))
         orderResponse = OrderResponse()
 
         orderResponse.HasError = bool(_json['OrderResponse']['HasError'])
@@ -138,7 +143,7 @@ class Bit2cClient:
         sign = self.ComputeHash(qString)
         url = self.Url + "Order/MyOrders"
         response = self.Query(qString, url, sign)
-        _json = json.loads(response)
+        _json = json.loads(response.decode("utf-8"))
         orders = Orders()
         if 'bids' in _json:
             for bid in _json['bids']:
@@ -188,7 +193,7 @@ class Bit2cClient:
         sign = self.ComputeHash(qString)
         url = self.Url + "Order/AccountHistory"
         response = self.Query(qString, url, sign)
-        _json = json.loads(response)
+        _json = json.loads(response.decode("utf-8"))
         accountRaws = []
         for raw in _json:
             accountRaw = AccountRaw()
